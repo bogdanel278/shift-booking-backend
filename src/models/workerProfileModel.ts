@@ -40,29 +40,17 @@ export class WorkerProfileModel {
    * Create a new worker profile
    */
   static async create(input: CreateWorkerProfileInput): Promise<WorkerProfile> {
-    const { 
-      user_id, bio, skills, hourly_rate, 
-      years_of_experience, certifications, availability 
-    } = input;
+    const { user_id } = input;
     
+    // Minimal worker profile creation - only user_id is required
+    // Other fields can be updated later via the update method
     const query = `
-      INSERT INTO worker_profiles (
-        user_id, bio, skills, hourly_rate, 
-        years_of_experience, certifications, availability
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO worker_profiles (user_id)
+      VALUES ($1)
       RETURNING *
     `;
     
-    const result = await pool.query(query, [
-      user_id,
-      bio || null,
-      skills || null,
-      hourly_rate || null,
-      years_of_experience || null,
-      certifications || null,
-      availability || null
-    ]);
+    const result = await pool.query(query, [user_id]);
     
     return result.rows[0];
   }
