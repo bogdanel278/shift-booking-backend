@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "watch": "nodemon --watch src --exec ts-node src/index.ts"
+    "watch": "nodemon --watch src --exec ts-node src/index.ts",
+    "db:migrate": "node scripts/migrate.js",
+    "db:test": "node -e \"require('dotenv').config(); const {Pool} = require('pg'); const pool = new Pool({host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD, ssl: {rejectUnauthorized: false}}); pool.query('SELECT NOW()').then(r => {console.log('✓ Connected:', r.rows[0].now); pool.end();}).catch(e => {console.error('✗ Failed:', e.message); process.exit(1);});\""
   },
   "keywords": ["shift-booking", "marketplace", "express", "typescript"],
   "author": "",
