@@ -1,19 +1,26 @@
 import { pool } from '../config/database';
 
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled';
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
 export interface Booking {
   id: string;
   shift_id: string;
   worker_id: string;
   status: BookingStatus;
+  notes: string | null;
+  cancellation_reason: string | null;
   created_at: Date;
+  updated_at: Date;
+  confirmed_at: Date | null;
+  cancelled_at: Date | null;
+  deleted_at: Date | null;
 }
 
 export interface CreateBookingInput {
   shift_id: string;
   worker_id: string;
   status?: BookingStatus;
+  notes?: string;
 }
 
 export interface BookingWithDetails extends Booking {
@@ -31,38 +38,38 @@ export class BookingModel {
    * Create a new booking
    */
   static async create(input: CreateBookingInput): Promise<Booking> {
-    const { shift_id, worker_id, status = 'pending' } = input;
+    const { shift_id, worker_id, status = 'pending', notes } = input;
     
     const query = `
-      INSERT INTO bookings (shift_id, worker_id, status)
-      VALUES ($1, $2, $3)
+      INSERT INTO bookings (shift_id, worker_id, status, notes)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
     
-    const result = await pool.query(query, [shift_id, worker_id, status]);
+    const result = await pool.query(query, [shift_id, worker_id, status, notes || null]);
     return result.rows[0];
   }
 
   /**
-   * Find booking by ID
+   * Find booking by ID (excluding soft-deleted)
    */
   static async findById(id: string): Promise<Booking | null> {
-    const query = 'SELECT * FROM bookings WHERE id = $1';
+    const query = 'SELECT * FROM bookings WHERE id = $1 AND deleted_at IS NULL';
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
   }
 
   /**
-   * Get all bookings
+   * Get all bookings (excluding soft-deleted)
    */
   static async findAll(): Promise<Booking[]> {
-    const query = 'SELECT * FROM bookings ORDER BY created_at DESC';
+    const query = 'SELECT * FROM bookings WHERE deleted_at IS NULL ORDER BY created_at DESC';
     const result = await pool.query(query);
     return result.rows;
   }
 
   /**
-   * Get bookings by worker ID with shift details
+   * Get bookings by worker ID with shift details (excluding soft-deleted)
    */
   static async findByWorkerId(workerId: string): Promise<BookingWithDetails[]> {
     const query = `
@@ -75,7 +82,7 @@ export class BookingModel {
         s.pay_rate as shift_pay_rate
       FROM bookings b
       JOIN shifts s ON b.shift_id = s.id
-      WHERE b.worker_id = $1
+      WHERE b.worker_id = $1 AND b.deleted_at IS NULL AND s.deleted_at IS NULL
       ORDER BY s.start_time DESC
     `;
     
@@ -84,7 +91,7 @@ export class BookingModel {
   }
 
   /**
-   * Get bookings by shift ID with worker details
+   * Get bookings by shift ID with worker details (excluding soft-deleted)
    */
   static async findByShiftId(shiftId: string): Promise<BookingWithDetails[]> {
     const query = `
@@ -94,7 +101,7 @@ export class BookingModel {
         u.email as worker_email
       FROM bookings b
       JOIN users u ON b.worker_id = u.id
-      WHERE b.shift_id = $1
+      WHERE b.shift_id = $1 AND b.deleted_at IS NULL AND u.deleted_at IS NULL
       ORDER BY b.created_at DESC
     `;
     
@@ -105,25 +112,64 @@ export class BookingModel {
   /**
    * Update booking status
    */
-  static async updateStatus(id: string, status: BookingStatus): Promise<Booking | null> {
-    const query = `
-      UPDATE bookings 
-      SET status = $1
-      WHERE id = $2
-      RETURNING *
-    `;
+  static async updateStatus(id: string, status: BookingStatus, cancellationReason?: string): Promise<Booking | null> {
+    let query: string;
+    let params: any[];
+
+    if (status === 'confirmed') {
+      query = `
+        UPDATE bookings 
+        SET status = $1, confirmed_at = NOW(), updated_at = NOW()
+        WHERE id = $2 AND deleted_at IS NULL
+        RETURNING *
+      `;
+      params = [status, id];
+    } else if (status === 'cancelled') {
+      query = `
+        UPDATE bookings 
+        SET status = $1, cancelled_at = NOW(), cancellation_reason = $2, updated_at = NOW()
+        WHERE id = $3 AND deleted_at IS NULL
+        RETURNING *
+      `;
+      params = [status, cancellationReason || null, id];
+    } else {
+      query = `
+        UPDATE bookings 
+        SET status = $1, updated_at = NOW()
+        WHERE id = $2 AND deleted_at IS NULL
+        RETURNING *
+      `;
+      params = [status, id];
+    }
     
-    const result = await pool.query(query, [status, id]);
+    const result = await pool.query(query, params);
     return result.rows[0] || null;
   }
 
   /**
-   * Check if booking exists for a worker and shift
+   * Update booking notes
+   */
+  static async updateNotes(id: string, notes: string): Promise<Booking | null> {
+    const query = `
+      UPDATE bookings 
+      SET notes = $1, updated_at = NOW()
+      WHERE id = $2 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [notes, id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Check if booking exists for a worker and shift (excluding soft-deleted and cancelled)
    */
   static async existsByWorkerAndShift(workerId: string, shiftId: string): Promise<boolean> {
     const query = `
       SELECT id FROM bookings 
-      WHERE worker_id = $1 AND shift_id = $2
+      WHERE worker_id = $1 AND shift_id = $2 
+      AND status NOT IN ('cancelled') 
+      AND deleted_at IS NULL
     `;
     
     const result = await pool.query(query, [workerId, shiftId]);
@@ -131,10 +177,10 @@ export class BookingModel {
   }
 
   /**
-   * Delete booking by ID
+   * Soft delete booking by ID
    */
   static async delete(id: string): Promise<boolean> {
-    const query = 'DELETE FROM bookings WHERE id = $1 RETURNING id';
+    const query = 'UPDATE bookings SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id';
     const result = await pool.query(query, [id]);
     return result.rowCount !== null && result.rowCount > 0;
   }

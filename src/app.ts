@@ -2,6 +2,11 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import userRoutes from './routes/userRoutes';
 import shiftRoutes from './routes/shiftRoutes';
 import bookingRoutes from './routes/bookingRoutes';
+import workerProfileRoutes from './routes/workerProfileRoutes';
+import businessProfileRoutes from './routes/businessProfileRoutes';
+import timesheetRoutes from './routes/timesheetRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 const app: Application = express();
@@ -27,6 +32,11 @@ app.get('/health', (_req: Request, res: Response) => {
 app.use('/api/users', userRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/worker-profiles', workerProfileRoutes);
+app.use('/api/business-profiles', businessProfileRoutes);
+app.use('/api/timesheets', timesheetRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

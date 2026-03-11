@@ -8,9 +8,17 @@ export class UserController {
    */
   static async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { name, email, role } = req.body;
+      const { name, email, role, password_hash, phone, timezone, profile_picture_url } = req.body;
 
-      const user = await UserService.createUser({ name, email, role });
+      const user = await UserService.createUser({ 
+        name, 
+        email, 
+        role, 
+        password_hash,
+        phone,
+        timezone,
+        profile_picture_url
+      });
 
       res.status(201).json({
         success: true,
