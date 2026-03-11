@@ -1,33 +1,38 @@
 import { Router } from 'express';
 import { TimesheetController } from '../controllers/timesheetController';
+import { authenticateToken } from '../middleware/authMiddleware';
+import { requireWorker, requireBusiness } from '../middleware/roleMiddleware';
 
 const router = Router();
 
-// Clock in (create timesheet)
-router.post('/clock-in', TimesheetController.clockIn);
+// All routes require authentication
+router.use(authenticateToken);
 
-// Clock out
-router.post('/:id/clock-out', TimesheetController.clockOut);
+// Clock in (create timesheet) - Worker only
+router.post('/clock-in', requireWorker, TimesheetController.clockIn);
 
-// Get timesheet by booking ID
+// Clock out - Worker only
+router.post('/:id/clock-out', requireWorker, TimesheetController.clockOut);
+
+// Get timesheet by booking ID - Authenticated users
 router.get('/booking/:bookingId', TimesheetController.getByBookingId);
 
-// Get worker timesheets
-router.get('/worker/:workerId', TimesheetController.getWorkerTimesheets);
+// Get worker timesheets - Worker only (uses req.user.id)
+router.get('/my-timesheets', requireWorker, TimesheetController.getMyTimesheets);
 
-// Get worker earnings
-router.get('/worker/:workerId/earnings', TimesheetController.getWorkerEarnings);
+// Get worker earnings - Worker only (uses req.user.id)
+router.get('/my-earnings', requireWorker, TimesheetController.getMyEarnings);
 
-// Get business timesheets
-router.get('/business/:businessId', TimesheetController.getBusinessTimesheets);
+// Get business timesheets - Business only (uses req.user.id)
+router.get('/business-timesheets', requireBusiness, TimesheetController.getBusinessTimesheets);
 
-// Get pending timesheets for approval
-router.get('/business/:businessId/pending', TimesheetController.getPendingTimesheets);
+// Get pending timesheets for approval - Business only (uses req.user.id)
+router.get('/pending', requireBusiness, TimesheetController.getPendingTimesheets);
 
-// Approve timesheet
-router.post('/:id/approve', TimesheetController.approveTimesheet);
+// Approve timesheet - Business only
+router.post('/:id/approve', requireBusiness, TimesheetController.approveTimesheet);
 
-// Reject timesheet
-router.post('/:id/reject', TimesheetController.rejectTimesheet);
+// Reject timesheet - Business only
+router.post('/:id/reject', requireBusiness, TimesheetController.rejectTimesheet);
 
 export default router;

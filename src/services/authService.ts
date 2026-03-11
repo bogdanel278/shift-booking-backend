@@ -129,11 +129,12 @@ export class AuthService {
 
     const user = await UserModel.create(userInput);
 
-    // Create business profile
+    // Create business profile with correct field mapping
     await BusinessProfileModel.create({
       user_id: user.id,
       company_name: input.company_name,
-      address: input.business_address,
+      tax_id: input.company_number, // Maps company_number to tax_id
+      business_type: input.business_type,
     });
 
     // Generate token

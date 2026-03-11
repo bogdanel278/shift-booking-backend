@@ -41,12 +41,16 @@ export class TimesheetController {
   }
 
   /**
-   * Get worker timesheets
+   * Get worker timesheets (my timesheets)
    */
-  static async getWorkerTimesheets(req: Request, res: Response, next: NextFunction) {
+  static async getMyTimesheets(req: Request, res: Response, next: NextFunction) {
     try {
-      const { workerId } = req.params;
-      const timesheets = await TimesheetService.getWorkerTimesheets(workerId);
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const timesheets = await TimesheetService.getWorkerTimesheets(req.user.userId);
       res.json(timesheets);
     } catch (error) {
       next(error);
@@ -54,12 +58,16 @@ export class TimesheetController {
   }
 
   /**
-   * Get business timesheets
+   * Get business timesheets (my business timesheets)
    */
   static async getBusinessTimesheets(req: Request, res: Response, next: NextFunction) {
     try {
-      const { businessId } = req.params;
-      const timesheets = await TimesheetService.getBusinessTimesheets(businessId);
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const timesheets = await TimesheetService.getBusinessTimesheets(req.user.userId);
       res.json(timesheets);
     } catch (error) {
       next(error);
@@ -67,12 +75,16 @@ export class TimesheetController {
   }
 
   /**
-   * Get pending timesheets for approval
+   * Get pending timesheets for approval (my business)
    */
   static async getPendingTimesheets(req: Request, res: Response, next: NextFunction) {
     try {
-      const { businessId } = req.params;
-      const timesheets = await TimesheetService.getPendingTimesheets(businessId);
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const timesheets = await TimesheetService.getPendingTimesheets(req.user.userId);
       res.json(timesheets);
     } catch (error) {
       next(error);
@@ -85,8 +97,13 @@ export class TimesheetController {
   static async approveTimesheet(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { approved_by } = req.body;
-      const timesheet = await TimesheetService.approveTimesheet(id, approved_by);
+      
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const timesheet = await TimesheetService.approveTimesheet(id, req.user.userId);
       res.json(timesheet);
     } catch (error) {
       next(error);
@@ -108,12 +125,16 @@ export class TimesheetController {
   }
 
   /**
-   * Get worker earnings
+   * Get worker earnings (my earnings)
    */
-  static async getWorkerEarnings(req: Request, res: Response, next: NextFunction) {
+  static async getMyEarnings(req: Request, res: Response, next: NextFunction) {
     try {
-      const { workerId } = req.params;
-      const earnings = await TimesheetService.getWorkerEarnings(workerId);
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const earnings = await TimesheetService.getWorkerEarnings(req.user.userId);
       res.json(earnings);
     } catch (error) {
       next(error);

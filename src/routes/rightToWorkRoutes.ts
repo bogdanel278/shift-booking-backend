@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { RightToWorkController } from '../controllers/rightToWorkController';
-import { authenticateToken } from '../middleware/authMiddleware';
-import { requireWorker } from '../middleware/roleMiddleware';
+import { authenticateToken, requireWorker, requireAdmin } from '../middleware/authMiddleware';
+import { validateRTWSubmission, validateUUID } from '../middleware/validationMiddleware';
+import { handleValidationErrors } from '../middleware/handleValidationErrors';
 
 const router = Router();
 
@@ -10,6 +11,8 @@ router.post(
   '/submit',
   authenticateToken,
   requireWorker,
+  validateRTWSubmission,
+  handleValidationErrors,
   RightToWorkController.submitVerification
 );
 
@@ -20,17 +23,20 @@ router.get(
   RightToWorkController.getStatus
 );
 
-// Admin endpoints (requires authentication)
-// TODO: Add requireAdmin middleware when admin role is implemented
+// Admin endpoints (requires authentication + admin role)
 router.get(
   '/admin/pending',
   authenticateToken,
+  requireAdmin,
   RightToWorkController.getPending
 );
 
 router.patch(
   '/admin/:id/review',
   authenticateToken,
+  requireAdmin,
+  validateUUID('id'),
+  handleValidationErrors,
   RightToWorkController.reviewVerification
 );
 

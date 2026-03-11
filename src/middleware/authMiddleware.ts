@@ -57,3 +57,66 @@ export function optionalAuth(
     next();
   }
 }
+
+/**
+ * Middleware to require business role
+ */
+export function requireBusiness(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  if (req.user.role !== 'business') {
+    res.status(403).json({ error: 'Business account required' });
+    return;
+  }
+
+  next();
+}
+
+/**
+ * Middleware to require worker role
+ */
+export function requireWorker(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  if (req.user.role !== 'worker') {
+    res.status(403).json({ error: 'Worker account required' });
+    return;
+  }
+
+  next();
+}
+
+/**
+ * Middleware to require admin role
+ */
+export function requireAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!req.user) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  if (req.user.role !== 'admin') {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
+  }
+
+  next();
+}

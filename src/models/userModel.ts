@@ -1,6 +1,6 @@
 import { pool } from '../config/database';
 
-export type UserRole = 'worker' | 'business';
+export type UserRole = 'worker' | 'business' | 'admin';
 
 export interface User {
   id: string;

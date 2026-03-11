@@ -4,6 +4,8 @@ interface VouchsafeConfig {
   clientId: string;
   clientSecret: string;
   baseUrl: string;
+  workflowId: string;
+  publicToken: string;
   environment: string;
 }
 
@@ -23,10 +25,38 @@ interface VouchsafeResponse {
 /**
  * Vouchsafe Integration Service
  * 
- * NOTE: This is a scaffold implementation. Actual Vouchsafe API endpoints
- * and authentication flow need to be configured based on their documentation.
+ * IMPORTANT: Vouchsafe API Integration Status
+ * ==========================================
  * 
- * TODO: Update with actual Vouchsafe API specification
+ * Current Status: PARTIALLY IMPLEMENTED - 401 Authentication Error
+ * 
+ * Issue: The API endpoint and/or authentication method needs verification from
+ * Vouchsafe's official documentation or support team.
+ * 
+ * Current Implementation:
+ * - Endpoint: POST https://app.vouchsafe.id/api/v1/verifications
+ * - Auth: Bearer token in Authorization header
+ * - Purpose: Creates a verification session (not direct share code check)
+ * 
+ * Known Issues:
+ * 1. API returns 401 Unauthorized with current credentials
+ * 2. The /api/v1/verifications endpoint may create a session (requiring user to visit URL)
+ *    rather than directly verifying a share code
+ * 3. May need webhook endpoint to receive final verification results
+ * 
+ * Required Actions:
+ * 1. Verify correct Vouchsafe API endpoint from official documentation
+ * 2. Confirm authentication method (Bearer token, API key header, etc.)
+ * 3. Check if API key has required permissions in Vouchsafe dashboard
+ * 4. Implement webhook handler if verification is asynchronous
+ * 5. Update this service with correct endpoint and request format
+ * 
+ * Sandbox Mode:
+ * - Works correctly for development/testing
+ * - Use: PASS12345, FAIL12345, ERROR1234 for testing
+ * - Set VOUCHSAFE_ENVIRONMENT=sandbox in .env
+ * 
+ * Contact: support@vouchsafe.co.uk for API documentation
  */
 export class VouchsafeService {
   private config: VouchsafeConfig;
@@ -36,6 +66,8 @@ export class VouchsafeService {
       clientId: process.env.VOUCHSAFE_CLIENT_ID || 'cmmm59d400001viihnspty8e5',
       clientSecret: process.env.VOUCHSAFE_CLIENT_SECRET || '',
       baseUrl: process.env.VOUCHSAFE_BASE_URL || 'https://api.vouchsafe.co.uk',
+      workflowId: process.env.VOUCHSAFE_WORKFLOW_ID || '',
+      publicToken: process.env.VOUCHSAFE_PUBLIC_TOKEN || '',
       environment: process.env.VOUCHSAFE_ENVIRONMENT || 'sandbox',
     };
   }
@@ -50,16 +82,29 @@ export class VouchsafeService {
         return this.sandboxVerifyShareCode(request.shareCode);
       }
 
-      // TODO: Replace with actual Vouchsafe API endpoint when available
-      const response = await axios.post(`${this.config.baseUrl}/v1/verify/share-code`, {
-        share_code: request.shareCode,
-        date_of_birth: request.dateOfBirth,
-        client_id: this.config.clientId,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.config.clientSecret}`,
+      // Vouchsafe API endpoint - creates verification request
+      const response = await axios.post(
+        `${this.config.baseUrl}/api/v1/verifications`,
+        {
+          email: `temp-${Date.now()}@verification.local`,
+          first_name: 'Worker',
+          last_name: 'Verification',
+          street_address: '',
+          postcode: '',
+          date_of_birth: request.dateOfBirth,
+          workflow_id: this.config.workflowId,
+          external_id: `rtw-${Date.now()}`,
+          redirect_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verification/complete`,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        },
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.config.clientSecret}`,
+          }
         }
-      });
+      );
 
       const data = response.data as any;
       return {
@@ -72,12 +117,38 @@ export class VouchsafeService {
 
     } catch (error: any) {
       console.error('Vouchsafe API error:', error.message);
+      console.error('Status code:', error.response?.status);
+      console.error('Response data:', JSON.stringify(error.response?.data, null, 2));
+      console.error('Request headers:', JSON.stringify(error.config?.headers, null, 2));
+      
+      // Categorize errors for better handling
+      let errorMessage = 'Verification failed';
+      const statusCode = error.response?.status;
+      
+      if (statusCode === 401) {
+        errorMessage = 'Authentication failed - API credentials may be invalid or expired';
+        console.error('⚠️  ACTION REQUIRED: Verify Vouchsafe API credentials in dashboard');
+      } else if (statusCode === 403) {
+        errorMessage = 'Access forbidden - API key may lack required permissions';
+        console.error('⚠️  ACTION REQUIRED: Check API key permissions in Vouchsafe dashboard');
+      } else if (statusCode === 404) {
+        errorMessage = 'API endpoint not found - verify correct Vouchsafe API URL';
+        console.error('⚠️  ACTION REQUIRED: Confirm API endpoint from Vouchsafe documentation');
+      } else if (statusCode === 429) {
+        errorMessage = 'Rate limit exceeded - too many requests to Vouchsafe API';
+      } else if (statusCode >= 500) {
+        errorMessage = 'Vouchsafe service temporarily unavailable';
+      }
       
       return {
         success: false,
         status: 'failed',
-        message: error.response?.data?.message || error.message || 'Verification failed',
-        details: error.response?.data,
+        message: error.response?.data?.message || errorMessage,
+        details: {
+          statusCode,
+          error: error.response?.data,
+          timestamp: new Date().toISOString(),
+        },
       };
     }
   }

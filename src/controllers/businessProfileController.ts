@@ -65,12 +65,12 @@ export class BusinessProfileController {
   }
 
   /**
-   * Get businesses by industry
+   * Get businesses by business type
    */
-  static async getByIndustry(req: Request, res: Response, next: NextFunction) {
+  static async getByBusinessType(req: Request, res: Response, next: NextFunction) {
     try {
-      const { industry } = req.query;
-      const profiles = await BusinessProfileService.getByIndustry(industry as string);
+      const { business_type } = req.query;
+      const profiles = await BusinessProfileService.getByBusinessType(business_type as string);
       res.json(profiles);
     } catch (error) {
       next(error);
@@ -98,6 +98,59 @@ export class BusinessProfileController {
       const { userId } = req.params;
       const result = await BusinessProfileService.deleteProfile(userId);
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get current authenticated business profile
+   */
+  static async getCurrentProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+      const profile = await BusinessProfileService.getProfileByUserId(req.user.userId);
+      res.json(profile);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update current authenticated business profile
+   */
+  static async updateCurrentProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+      const profile = await BusinessProfileService.updateProfile(req.user.userId, req.body);
+      res.json(profile);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get shifts created by authenticated business
+   */
+  static async getMyShifts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+      const { ShiftService } = await import('../services/shiftService');
+      const shifts = await ShiftService.getShiftsByBusinessId(req.user.userId);
+      res.json({
+        success: true,
+        data: shifts,
+        count: shifts.length
+      });
     } catch (error) {
       next(error);
     }

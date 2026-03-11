@@ -1,6 +1,6 @@
 import { pool } from '../config/database';
 
-export type ShiftStatus = 'draft' | 'published' | 'in_progress' | 'completed' | 'cancelled';
+export type ShiftStatus = 'draft' | 'open' | 'filled' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Shift {
   id: string;
@@ -54,7 +54,7 @@ export class ShiftModel {
   static async create(input: CreateShiftInput): Promise<Shift> {
     const { 
       business_id, title, description, location, requirements,
-      start_time, end_time, pay_rate, max_workers, category, status = 'published'
+      start_time, end_time, pay_rate, max_workers, category, status = 'open'
     } = input;
     
     const query = `
@@ -102,7 +102,7 @@ export class ShiftModel {
   }
 
   /**
-   * Get available shifts (future, published shifts with capacity)
+   * Get available shifts (future, open shifts with capacity)
    */
   static async findAvailable(): Promise<Shift[]> {
     const query = `
@@ -114,7 +114,7 @@ export class ShiftModel {
         ) as booked_count
       FROM shifts s
       WHERE s.start_time > NOW()
-      AND s.status = 'published'
+      AND s.status = 'open'
       AND s.deleted_at IS NULL
       AND (
         s.max_workers IS NULL 

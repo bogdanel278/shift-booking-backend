@@ -150,4 +150,35 @@ export class ShiftService {
       throw new Error('Failed to delete shift');
     }
   }
+
+  /**
+   * Cancel shift
+   */
+  static async cancelShift(id: string, businessId: string): Promise<Shift> {
+    // Check if shift exists
+    const shift = await ShiftModel.findById(id);
+    
+    if (!shift) {
+      throw new Error('Shift not found');
+    }
+
+    // Verify ownership
+    if (shift.business_id !== businessId) {
+      throw new Error('Not authorized to cancel this shift');
+    }
+
+    // Check if shift is already cancelled
+    if (shift.status === 'cancelled') {
+      throw new Error('Shift is already cancelled');
+    }
+
+    // Update shift status to cancelled
+    const cancelled = await ShiftModel.update(id, { status: 'cancelled' });
+    
+    if (!cancelled) {
+      throw new Error('Failed to cancel shift');
+    }
+
+    return cancelled;
+  }
 }

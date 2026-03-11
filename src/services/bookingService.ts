@@ -7,6 +7,7 @@ import {
 } from '../models/bookingModel';
 import { UserModel } from '../models/userModel';
 import { ShiftModel } from '../models/shiftModel';
+import { RightToWorkModel } from '../models/rightToWorkModel';
 
 export class BookingService {
   /**
@@ -24,11 +25,28 @@ export class BookingService {
       throw new Error('Only workers can create bookings');
     }
 
+    // CRITICAL: Verify worker has approved right-to-work verification
+    const hasApprovedRTW = await RightToWorkModel.hasApprovedVerification(input.worker_id);
+    
+    if (!hasApprovedRTW) {
+      throw new Error('You must have an approved right-to-work verification before booking shifts. Please submit your verification documents.');
+    }
+
     // Validate shift exists
     const shift = await ShiftModel.findById(input.shift_id);
     
     if (!shift) {
       throw new Error('Shift not found');
+    }
+
+    // Check if shift is cancelled
+    if (shift.status === 'cancelled') {
+      throw new Error('Cannot book a cancelled shift');
+    }
+
+    // Check if shift is already filled
+    if (shift.status === 'filled') {
+      throw new Error('This shift is already filled');
     }
 
     // Check if shift is in the future
@@ -91,12 +109,17 @@ export class BookingService {
   /**
    * Get bookings by shift ID
    */
-  static async getBookingsByShiftId(shiftId: string): Promise<BookingWithDetails[]> {
+  static async getBookingsByShiftId(shiftId: string, businessId?: string): Promise<BookingWithDetails[]> {
     // Validate shift exists
     const shift = await ShiftModel.findById(shiftId);
     
     if (!shift) {
       throw new Error('Shift not found');
+    }
+
+    // Verify ownership if businessId provided
+    if (businessId && shift.business_id !== businessId) {
+      throw new Error('Not authorized to view bookings for this shift');
     }
 
     return await BookingModel.findByShiftId(shiftId);
@@ -111,7 +134,7 @@ export class BookingService {
     userId: string
   ): Promise<Booking> {
     // Validate status
-    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+    if (!['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
       throw new Error('Invalid status');
     }
 
@@ -120,6 +143,19 @@ export class BookingService {
     
     if (!booking) {
       throw new Error('Booking not found');
+    }
+
+    // Validate status transitions (state machine)
+    const currentStatus = booking.status;
+    const validTransitions: Record<BookingStatus, BookingStatus[]> = {
+      'pending': ['confirmed', 'cancelled'],
+      'confirmed': ['cancelled', 'completed'],
+      'cancelled': [], // Cannot transition from cancelled
+      'completed': []  // Cannot transition from completed
+    };
+
+    if (!validTransitions[currentStatus].includes(status)) {
+      throw new Error(`Cannot change booking status from '${currentStatus}' to '${status}'`);
     }
 
     // Get user and shift to verify permissions
@@ -139,6 +175,20 @@ export class BookingService {
 
     if (user.role === 'business' && shift.business_id !== userId) {
       throw new Error('Not authorized to modify this booking');
+    }
+
+    // Only businesses can confirm bookings
+    if (status === 'confirmed' && user.role !== 'business') {
+      throw new Error('Only businesses can confirm bookings');
+    }
+
+    // If confirming a booking, check shift capacity
+    if (status === 'confirmed' && shift.max_workers) {
+      const confirmedCount = await BookingModel.countConfirmedByShift(booking.shift_id);
+      
+      if (confirmedCount >= shift.max_workers) {
+        throw new Error(`This shift has reached its maximum capacity of ${shift.max_workers} workers`);
+      }
     }
 
     // Update status

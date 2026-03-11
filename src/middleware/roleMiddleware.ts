@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-type UserRole = 'worker' | 'business';
+type UserRole = 'worker' | 'business' | 'admin';
 
 /**
  * Middleware to check if user has required role
@@ -44,4 +44,26 @@ export function requireBusiness(
   next: NextFunction
 ): void {
   return requireRole('business')(req, res, next);
+}
+
+/**
+ * Middleware to check if user is an admin
+ */
+export function requireAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  return requireRole('admin')(req, res, next);
+}
+
+/**
+ * Middleware to check if user is admin or business
+ */
+export function requireAdminOrBusiness(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  return requireRole('admin', 'business')(req, res, next);
 }

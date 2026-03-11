@@ -1,48 +1,49 @@
 import { Router } from 'express';
 import { BookingController } from '../controllers/bookingController';
+import { authenticateToken, requireWorker, requireBusiness } from '../middleware/authMiddleware';
 
 const router = Router();
 
 /**
  * @route   POST /api/bookings
  * @desc    Create a new booking (worker only)
- * @access  Public (should be protected in production)
+ * @access  Protected - Worker only
  */
-router.post('/', BookingController.createBooking);
+router.post('/', authenticateToken, requireWorker, BookingController.createBooking);
+
+/**
+ * @route   GET /api/bookings/my-bookings
+ * @desc    Get all bookings for the authenticated worker
+ * @access  Protected - Worker only
+ */
+router.get('/my-bookings', authenticateToken, requireWorker, BookingController.getMyBookings);
+
+/**
+ * @route   GET /api/bookings/shift/:shiftId
+ * @desc    Get all bookings for a specific shift (business owner only)
+ * @access  Protected - Business only
+ */
+router.get('/shift/:shiftId', authenticateToken, requireBusiness, BookingController.getBookingsByShiftId);
 
 /**
  * @route   GET /api/bookings/:id
  * @desc    Get booking by ID
- * @access  Public (should be protected in production)
+ * @access  Protected
  */
-router.get('/:id', BookingController.getBookingById);
-
-/**
- * @route   GET /api/bookings/worker/:workerId
- * @desc    Get all bookings for a specific worker
- * @access  Public (should be protected in production)
- */
-router.get('/worker/:workerId', BookingController.getBookingsByWorkerId);
-
-/**
- * @route   GET /api/bookings/shift/:shiftId
- * @desc    Get all bookings for a specific shift
- * @access  Public (should be protected in production)
- */
-router.get('/shift/:shiftId', BookingController.getBookingsByShiftId);
+router.get('/:id', authenticateToken, BookingController.getBookingById);
 
 /**
  * @route   PUT /api/bookings/:id
  * @desc    Update booking status
- * @access  Public (should be protected in production)
+ * @access  Protected
  */
-router.put('/:id', BookingController.updateBookingStatus);
+router.put('/:id', authenticateToken, BookingController.updateBookingStatus);
 
 /**
  * @route   DELETE /api/bookings/:id
  * @desc    Cancel/delete a booking
- * @access  Public (should be protected in production)
+ * @access  Protected
  */
-router.delete('/:id', BookingController.cancelBooking);
+router.delete('/:id', authenticateToken, BookingController.cancelBooking);
 
 export default router;

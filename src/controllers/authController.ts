@@ -3,6 +3,39 @@ import { AuthService } from '../services/authService';
 
 export class AuthController {
   /**
+   * Register a new user (unified endpoint)
+   * POST /api/auth/register
+   */
+  static async register(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { role } = req.body;
+      
+      if (!role) {
+        res.status(400).json({ error: 'Role is required (worker or business)' });
+        return;
+      }
+
+      let result;
+      if (role === 'worker') {
+        result = await AuthService.registerWorker(req.body);
+      } else if (role === 'business') {
+        result = await AuthService.registerBusiness(req.body);
+      } else {
+        res.status(400).json({ error: 'Invalid role. Must be "worker" or "business"' });
+        return;
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `${role.charAt(0).toUpperCase() + role.slice(1)} registered successfully`,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Register a new worker
    * POST /api/auth/register/worker
    */

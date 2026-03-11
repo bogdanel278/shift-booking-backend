@@ -11,7 +11,8 @@
     "db:migrate": "node scripts/migrate.js",
     "db:test": "node -e \"require('dotenv').config(); const {Pool} = require('pg'); const pool = new Pool({host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD, ssl: {rejectUnauthorized: false}}); pool.query('SELECT NOW()').then(r => {console.log('✓ Connected:', r.rows[0].now); pool.end();}).catch(e => {console.error('✗ Failed:', e.message); process.exit(1);});\"",
     "test:rtw": "ts-node scripts/testRightToWork.ts",
-    "test:sandbox": "bash scripts/testSandboxQuick.sh"
+    "test:sandbox": "bash scripts/testSandboxQuick.sh",
+    "test:onboarding": "ts-node scripts/testWorkerOnboarding.ts"
   },
   "keywords": [
     "shift-booking",
@@ -29,6 +30,9 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.3.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.11.3"
   },

@@ -65,13 +65,13 @@ export class BusinessProfileService {
   }
 
   /**
-   * Get businesses by industry
+   * Get businesses by business type
    */
-  static async getByIndustry(industry: string) {
-    if (!industry || industry.trim().length === 0) {
-      throw new Error('Industry cannot be empty');
+  static async getByBusinessType(businessType: string) {
+    if (!businessType || businessType.trim().length === 0) {
+      throw new Error('Business type cannot be empty');
     }
-    return await BusinessProfileModel.findByIndustry(industry);
+    return await BusinessProfileModel.searchByBusinessType(businessType);
   }
 
   /**

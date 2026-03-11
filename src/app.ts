@@ -1,4 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
+import { apiLimiter } from './middleware/rateLimitMiddleware';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import shiftRoutes from './routes/shiftRoutes';
@@ -13,15 +15,32 @@ import { errorHandler } from './middleware/errorHandler';
 
 const app: Application = express();
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for API
+  crossOriginEmbedderPolicy: false,
+}));
 
-// CORS (if needed)
+// Middleware
+app.use(express.json({ limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.MAX_REQUEST_SIZE || '10mb' }));
+
+// CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
 app.use((_req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+  const origin = _req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight
+  if (_req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
   next();
 });
 
@@ -30,6 +49,9 @@ app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -37,11 +59,11 @@ app.use('/api/shifts', shiftRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/worker-profiles', workerProfileRoutes);
 app.use('/api/business-profiles', businessProfileRoutes);
+app.use('/api/business', businessProfileRoutes); // Alias for authenticated business endpoints
 app.use('/api/timesheets', timesheetRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/workers/right-to-work', rightToWorkRoutes);
-app.use('/api/admin/right-to-work', rightToWorkRoutes);
+app.use('/api/right-to-work', rightToWorkRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

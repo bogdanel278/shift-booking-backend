@@ -8,15 +8,24 @@ export class ShiftController {
    */
   static async createShift(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { business_id, title, location, start_time, end_time, pay_rate } = req.body;
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const { title, description, location, requirements, start_time, end_time, pay_rate, max_workers, category } = req.body;
 
       const shift = await ShiftService.createShift({
-        business_id,
+        business_id: req.user.userId,
         title,
+        description,
         location,
+        requirements,
         start_time: new Date(start_time),
         end_time: new Date(end_time),
-        pay_rate: parseFloat(pay_rate)
+        pay_rate: parseFloat(pay_rate),
+        max_workers: max_workers ? parseInt(max_workers) : undefined,
+        category
       });
 
       res.status(201).json({
@@ -82,21 +91,27 @@ export class ShiftController {
    */
   static async updateShift(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
-      const { business_id, title, location, start_time, end_time, pay_rate } = req.body;
-
-      if (!business_id) {
-        throw new Error('business_id is required for authorization');
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
       }
 
-      const updateData: any = {};
-      if (title) updateData.title = title;
-      if (location) updateData.location = location;
-      if (start_time) updateData.start_time = new Date(start_time);
-      if (end_time) updateData.end_time = new Date(end_time);
-      if (pay_rate) updateData.pay_rate = parseFloat(pay_rate);
+      const { id } = req.params;
+      const { title, description, location, requirements, start_time, end_time, pay_rate, max_workers, category, status } = req.body;
 
-      const shift = await ShiftService.updateShift(id, business_id, updateData);
+      const updateData: any = {};
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (location !== undefined) updateData.location = location;
+      if (requirements !== undefined) updateData.requirements = requirements;
+      if (start_time !== undefined) updateData.start_time = new Date(start_time);
+      if (end_time !== undefined) updateData.end_time = new Date(end_time);
+      if (pay_rate !== undefined) updateData.pay_rate = parseFloat(pay_rate);
+      if (max_workers !== undefined) updateData.max_workers = max_workers ? parseInt(max_workers) : null;
+      if (category !== undefined) updateData.category = category;
+      if (status !== undefined) updateData.status = status;
+
+      const shift = await ShiftService.updateShift(id, req.user.userId, updateData);
 
       res.status(200).json({
         success: true,
@@ -113,18 +128,69 @@ export class ShiftController {
    */
   static async deleteShift(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
-      const { business_id } = req.body;
-
-      if (!business_id) {
-        throw new Error('business_id is required for authorization');
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
       }
 
-      await ShiftService.deleteShift(id, business_id);
+      const { id } = req.params;
+
+      await ShiftService.deleteShift(id, req.user.userId);
 
       res.status(200).json({
         success: true,
         message: 'Shift deleted successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel shift
+   * PATCH /api/shifts/:id/cancel
+   */
+  static async cancelShift(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const { id } = req.params;
+
+      const shift = await ShiftService.cancelShift(id, req.user.userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Shift cancelled successfully',
+        data: shift
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get all bookings for a shift
+   * GET /api/shifts/:id/bookings
+   */
+  static async getShiftBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const { id } = req.params;
+
+      const { BookingService } = await import('../services/bookingService');
+      const bookings = await BookingService.getBookingsByShiftId(id, req.user.userId);
+
+      res.status(200).json({
+        success: true,
+        data: bookings,
+        count: bookings.length
       });
     } catch (error) {
       next(error);

@@ -99,10 +99,8 @@ async function promptVerificationDetails(): Promise<TestConfig> {
   } else if (methodChoice === '3') {
     config.verificationMethod = 'share_code';
     console.log('\n--- Share Code Details ---');
-    console.log('\n💡 Sandbox Test Codes:');
-    console.log('  PASS12345 - Will pass verification');
-    console.log('  FAIL12345 - Will fail verification');
-    console.log('  ERROR1234 - Will trigger an error\n');
+    console.log('\n💡 Enter the worker\'s UK Right to Work share code');
+    console.log('   (This will be verified with the Home Office via Vouchsafe)\n');
     config.shareCode = await question('Share Code: ');
     config.dateOfBirth = await question('Date of Birth (YYYY-MM-DD): ');
   } else {
@@ -225,7 +223,7 @@ async function checkStatus(): Promise<void> {
 async function main() {
   console.log('================================================');
   console.log('   RIGHT-TO-WORK VERIFICATION TEST SCRIPT');
-  console.log('         Vouchsafe Sandbox Testing');
+  console.log('         Vouchsafe Production Mode');
   console.log('================================================');
 
   try {

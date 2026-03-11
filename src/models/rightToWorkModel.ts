@@ -145,6 +145,19 @@ export class RightToWorkModel {
   }
 
   /**
+   * Check if worker has approved RTW verification
+   */
+  static async hasApprovedVerification(workerId: string): Promise<boolean> {
+    const query = `
+      SELECT COUNT(*) as count 
+      FROM right_to_work_verifications 
+      WHERE worker_user_id = $1 AND status = 'approved'
+    `;
+    const result = await pool.query(query, [workerId]);
+    return parseInt(result.rows[0].count) > 0;
+  }
+
+  /**
    * Update verification
    */
   static async update(

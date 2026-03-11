@@ -177,6 +177,22 @@ export class BookingModel {
   }
 
   /**
+   * Count confirmed bookings for a shift
+   */
+  static async countConfirmedByShift(shiftId: string): Promise<number> {
+    const query = `
+      SELECT COUNT(*) as count 
+      FROM bookings 
+      WHERE shift_id = $1 
+      AND status = 'confirmed' 
+      AND deleted_at IS NULL
+    `;
+    
+    const result = await pool.query(query, [shiftId]);
+    return parseInt(result.rows[0].count);
+  }
+
+  /**
    * Soft delete booking by ID
    */
   static async delete(id: string): Promise<boolean> {

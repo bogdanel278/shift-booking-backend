@@ -4,14 +4,14 @@ export interface BusinessProfile {
   id: string;
   user_id: string;
   company_name: string;
-  company_description: string | null;
-  industry: string | null;
-  company_size: string | null;
-  website: string | null;
-  address: string | null;
+  description: string | null;
+  business_type: string | null;
+  tax_id: string | null;
+  website_url: string | null;
+  logo_url: string | null;
   is_verified: boolean;
-  verification_documents: string[] | null;
   rating: number | null;
+  total_reviews: number;
   total_shifts_posted: number;
   created_at: Date;
   updated_at: Date;
@@ -21,22 +21,20 @@ export interface BusinessProfile {
 export interface CreateBusinessProfileInput {
   user_id: string;
   company_name: string;
-  company_description?: string;
-  industry?: string;
-  company_size?: string;
-  website?: string;
-  address?: string;
-  verification_documents?: string[];
+  description?: string;
+  business_type?: string;
+  tax_id?: string;
+  website_url?: string;
+  logo_url?: string;
 }
 
 export interface UpdateBusinessProfileInput {
   company_name?: string;
-  company_description?: string;
-  industry?: string;
-  company_size?: string;
-  website?: string;
-  address?: string;
-  verification_documents?: string[];
+  description?: string;
+  business_type?: string;
+  tax_id?: string;
+  website_url?: string;
+  logo_url?: string;
 }
 
 export class BusinessProfileModel {
@@ -45,28 +43,27 @@ export class BusinessProfileModel {
    */
   static async create(input: CreateBusinessProfileInput): Promise<BusinessProfile> {
     const { 
-      user_id, company_name, company_description, industry,
-      company_size, website, address, verification_documents
+      user_id, company_name, description, business_type,
+      tax_id, website_url, logo_url
     } = input;
     
     const query = `
       INSERT INTO business_profiles (
-        user_id, company_name, company_description, industry,
-        company_size, website, address, verification_documents
+        user_id, company_name, description, business_type,
+        tax_id, website_url, logo_url
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     
     const result = await pool.query(query, [
       user_id,
       company_name,
-      company_description || null,
-      industry || null,
-      company_size || null,
-      website || null,
-      address || null,
-      verification_documents || null
+      description || null,
+      business_type || null,
+      tax_id || null,
+      website_url || null,
+      logo_url || null
     ]);
     
     return result.rows[0];
@@ -117,15 +114,15 @@ export class BusinessProfileModel {
   }
 
   /**
-   * Search businesses by industry
+   * Search businesses by business type
    */
-  static async findByIndustry(industry: string): Promise<BusinessProfile[]> {
+  static async searchByBusinessType(businessType: string): Promise<BusinessProfile[]> {
     const query = `
       SELECT * FROM business_profiles 
-      WHERE deleted_at IS NULL AND industry = $1
+      WHERE deleted_at IS NULL AND business_type = $1
       ORDER BY rating DESC NULLS LAST
     `;
-    const result = await pool.query(query, [industry]);
+    const result = await pool.query(query, [businessType]);
     return result.rows;
   }
 

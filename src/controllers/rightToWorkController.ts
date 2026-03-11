@@ -61,8 +61,6 @@ export class RightToWorkController {
    */
   static async getPending(req: Request, res: Response, next: NextFunction) {
     try {
-      // TODO: Add proper admin role check
-      // For now, any authenticated user can access this
       if (!req.user) {
         res.status(401).json({ error: 'Authentication required' });
         return;

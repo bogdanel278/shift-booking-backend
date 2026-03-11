@@ -3,12 +3,45 @@ import { WorkerProfileService } from '../services/workerProfileService';
 
 export class WorkerProfileController {
   /**
-   * Create worker profile
+   * Get my profile (authenticated worker)
+   * GET /api/worker-profiles/me
    */
-  static async createProfile(req: Request, res: Response, next: NextFunction) {
+  static async getMyProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const profile = await WorkerProfileService.createProfile(req.body);
-      res.status(201).json(profile);
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const profile = await WorkerProfileService.getProfileByUserId(req.user.userId);
+      
+      res.status(200).json({
+        success: true,
+        data: profile
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update my profile (authenticated worker)
+   * PUT /api/worker-profiles/me
+   */
+  static async updateMyProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      const profile = await WorkerProfileService.updateProfile(req.user.userId, req.body);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: profile
+      });
     } catch (error) {
       next(error);
     }
@@ -21,19 +54,6 @@ export class WorkerProfileController {
     try {
       const { userId } = req.params;
       const profile = await WorkerProfileService.getProfileByUserId(userId);
-      res.json(profile);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Update worker profile
-   */
-  static async updateProfile(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { userId } = req.params;
-      const profile = await WorkerProfileService.updateProfile(userId, req.body);
       res.json(profile);
     } catch (error) {
       next(error);
@@ -74,19 +94,6 @@ export class WorkerProfileController {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const profiles = await WorkerProfileService.getTopRated(limit);
       res.json(profiles);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Delete worker profile
-   */
-  static async deleteProfile(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { userId } = req.params;
-      const result = await WorkerProfileService.deleteProfile(userId);
-      res.json(result);
     } catch (error) {
       next(error);
     }

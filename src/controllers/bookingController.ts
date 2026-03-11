@@ -8,11 +8,16 @@ export class BookingController {
    */
   static async createBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { shift_id, worker_id } = req.body;
+      const { shift_id } = req.body;
+
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
 
       const booking = await BookingService.createBooking({
         shift_id,
-        worker_id
+        worker_id: req.user.userId
       });
 
       res.status(201).json({
@@ -44,14 +49,17 @@ export class BookingController {
   }
 
   /**
-   * Get bookings by worker ID
-   * GET /api/bookings/worker/:workerId
+   * Get bookings by worker ID (authenticated worker's bookings)
+   * GET /api/bookings/my-bookings
    */
-  static async getBookingsByWorkerId(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getMyBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { workerId } = req.params;
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
 
-      const bookings = await BookingService.getBookingsByWorkerId(workerId);
+      const bookings = await BookingService.getBookingsByWorkerId(req.user.userId);
 
       res.status(200).json({
         success: true,
@@ -90,13 +98,14 @@ export class BookingController {
   static async updateBookingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { status, user_id } = req.body;
+      const { status } = req.body;
 
-      if (!user_id) {
-        throw new Error('user_id is required for authorization');
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
       }
 
-      const booking = await BookingService.updateBookingStatus(id, status, user_id);
+      const booking = await BookingService.updateBookingStatus(id, status, req.user.userId);
 
       res.status(200).json({
         success: true,
@@ -114,13 +123,13 @@ export class BookingController {
   static async cancelBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { user_id } = req.body;
 
-      if (!user_id) {
-        throw new Error('user_id is required for authorization');
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
       }
 
-      await BookingService.cancelBooking(id, user_id);
+      await BookingService.cancelBooking(id, req.user.userId);
 
       res.status(200).json({
         success: true,
