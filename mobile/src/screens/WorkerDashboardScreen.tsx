@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AppStackParamList } from '../navigation/AppNavigator';
+import type { AppStackParamList } from '../navigation/types';
 import { useAuthStore } from '../store/authStore';
 import { bookingService } from '../services/bookingService';
 import { rtwService, type RtwStatus } from '../services/rtwService';

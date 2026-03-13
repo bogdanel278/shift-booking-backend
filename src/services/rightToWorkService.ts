@@ -1,6 +1,7 @@
 import { RightToWorkModel, CreateRTWVerificationInput, VerificationMethod } from '../models/rightToWorkModel';
 import { VouchsafeService } from './vouchsafeService';
 import { UserModel } from '../models/userModel';
+import { DocumentIntelligenceService } from './documentIntelligenceService';
 
 export interface SubmitRTWInput {
   worker_user_id: string;
@@ -28,9 +29,83 @@ export interface ReviewRTWInput {
 
 export class RightToWorkService {
   private vouchsafeService: VouchsafeService;
+  private documentIntelligenceService: DocumentIntelligenceService | null;
 
   constructor() {
     this.vouchsafeService = new VouchsafeService();
+    this.documentIntelligenceService = null;
+  }
+
+  private getDocumentIntelligenceService(): DocumentIntelligenceService {
+    if (!this.documentIntelligenceService) {
+      this.documentIntelligenceService = new DocumentIntelligenceService();
+    }
+
+    return this.documentIntelligenceService;
+  }
+
+  async analyzeUploadedDocument(fileBuffer: Buffer, documentType: string) {
+    const normalized = (documentType || '').toLowerCase().replace(/\s+/g, '_');
+    const di = this.getDocumentIntelligenceService();
+
+    if (normalized === 'passport') {
+      const extracted = await di.analyzePassport(fileBuffer);
+      return {
+        documentType: 'passport',
+        passportNumber: extracted.passportNumber,
+        expiryDate: extracted.expiryDate,
+        countryOfIssue: extracted.countryOfIssue,
+        name: extracted.name,
+        dateOfBirth: extracted.dateOfBirth,
+      };
+    }
+
+    const extracted = await di.analyzeGeneric(fileBuffer);
+
+    if (normalized === 'license') {
+      return {
+        documentType: 'license',
+        licenseNumber: extracted.documentNumber,
+        expiryDate: extracted.expiryDate,
+        countryOfIssue: extracted.countryOfIssue,
+        name: extracted.name,
+        dateOfBirth: extracted.dateOfBirth,
+      };
+    }
+
+    if (normalized === 'national_id') {
+      return {
+        documentType: 'national_id',
+        idNumber: extracted.documentNumber,
+        expiryDate: extracted.expiryDate,
+        countryOfIssue: extracted.countryOfIssue,
+        name: extracted.name,
+        dateOfBirth: extracted.dateOfBirth,
+      };
+    }
+
+    if (normalized === 'visa') {
+      return {
+        documentType: 'visa',
+        visaNumber: extracted.documentNumber,
+        visaType: extracted.visaType,
+        expiryDate: extracted.expiryDate,
+        name: extracted.name,
+        dateOfBirth: extracted.dateOfBirth,
+      };
+    }
+
+    if (normalized === 'share_code') {
+      return {
+        documentType: 'share_code',
+        shareCode: extracted.shareCode,
+        expiryDate: extracted.expiryDate,
+        name: extracted.name,
+        dateOfBirth: extracted.dateOfBirth,
+      };
+    }
+
+    throw new Error(`Unsupported document type: ${documentType}`);
   }
 
   /**

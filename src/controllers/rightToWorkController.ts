@@ -5,6 +5,39 @@ const rtwService = new RightToWorkService();
 
 export class RightToWorkController {
   /**
+   * Analyze uploaded document and extract fields
+   * POST /api/right-to-work/analyze
+   */
+  static async analyzeDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+      }
+
+      if (!req.file) {
+        res.status(400).json({ error: 'Document file is required' });
+        return;
+      }
+
+      const documentType = String(req.body.documentType || '').trim();
+      if (!documentType) {
+        res.status(400).json({ error: 'documentType is required' });
+        return;
+      }
+
+      const extracted = await rtwService.analyzeUploadedDocument(req.file.buffer, documentType);
+
+      res.status(200).json({
+        success: true,
+        data: extracted,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Submit right-to-work verification
    * POST /api/workers/right-to-work/submit
    */

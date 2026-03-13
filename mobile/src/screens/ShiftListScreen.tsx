@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert, TextInput,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AppStackParamList } from '../navigation/AppNavigator';
+import type { AppStackParamList } from '../navigation/types';
 import { shiftService, type Shift } from '../services/shiftService';
 
 type Props = { navigation: NativeStackNavigationProp<AppStackParamList, 'ShiftList'> };

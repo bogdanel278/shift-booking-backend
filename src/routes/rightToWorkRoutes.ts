@@ -3,6 +3,7 @@ import { RightToWorkController } from '../controllers/rightToWorkController';
 import { authenticateToken, requireWorker, requireAdmin } from '../middleware/authMiddleware';
 import { validateRTWSubmission, validateUUID } from '../middleware/validationMiddleware';
 import { handleValidationErrors } from '../middleware/handleValidationErrors';
+import { uploadSingleDocument } from '../middleware/uploadMiddleware';
 
 const router = Router();
 
@@ -21,6 +22,14 @@ router.get(
   authenticateToken,
   requireWorker,
   RightToWorkController.getStatus
+);
+
+router.post(
+  '/analyze',
+  authenticateToken,
+  requireWorker,
+  uploadSingleDocument,
+  RightToWorkController.analyzeDocument
 );
 
 // Admin endpoints (requires authentication + admin role)

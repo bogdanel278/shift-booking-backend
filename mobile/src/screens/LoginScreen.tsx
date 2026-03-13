@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../navigation/AuthNavigator';
+import type { AuthStackParamList } from '../navigation/types';
 import { authService } from '../services/authService';
 import { useAuthStore } from '../store/authStore';
 

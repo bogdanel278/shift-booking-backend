@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import type { AppStackParamList } from '../navigation/AppNavigator';
+import type { AppStackParamList } from '../navigation/types';
 import { shiftService, type Shift } from '../services/shiftService';
 import { bookingService } from '../services/bookingService';
 

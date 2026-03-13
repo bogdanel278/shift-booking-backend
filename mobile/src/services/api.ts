@@ -2,8 +2,13 @@ import axios from 'axios';
 import { API_BASE_URL } from '../constants/config';
 import { useAuthStore } from '../store/authStore';
 
+function normalizeBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+}
+
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: normalizeBaseUrl(API_BASE_URL),
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 });
@@ -12,7 +17,8 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = config.headers ?? {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 });

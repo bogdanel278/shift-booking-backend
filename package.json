@@ -23,6 +23,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@azure/ai-form-recognizer": "^5.1.0",
     "@types/axios": "^0.9.36",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
@@ -34,10 +35,12 @@
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
     "pg": "^8.11.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.20",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.9.0",
     "@types/pg": "^8.10.7",
     "nodemon": "^3.0.1",

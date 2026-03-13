@@ -5,14 +5,10 @@ import ShiftListScreen from '../screens/ShiftListScreen';
 import ShiftDetailsScreen from '../screens/ShiftDetailsScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
 import RightToWorkStatusScreen from '../screens/RightToWorkStatusScreen';
-
-export type AppStackParamList = {
-  WorkerDashboard: undefined;
-  ShiftList: undefined;
-  ShiftDetails: { shiftId: number };
-  MyBookings: undefined;
-  RightToWorkStatus: undefined;
-};
+import IdDocumentDetailsScreen from '../screens/IdDocumentDetailsScreen';
+import RtwMethodDetailsScreen from '../screens/RtwMethodDetailsScreen';
+import DocumentVerificationScreen from '../screens/DocumentVerificationScreen';
+import type { AppStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -43,6 +39,21 @@ export default function AppNavigator() {
         name="RightToWorkStatus"
         component={RightToWorkStatusScreen}
         options={{ title: 'Right to Work' }}
+      />
+      <Stack.Screen
+        name="IdDocumentDetails"
+        component={IdDocumentDetailsScreen}
+        options={{ title: 'ID Document' }}
+      />
+      <Stack.Screen
+        name="RtwMethodDetails"
+        component={RtwMethodDetailsScreen}
+        options={{ title: 'Right to Work Method' }}
+      />
+      <Stack.Screen
+        name="DocumentVerification"
+        component={DocumentVerificationScreen}
+        options={{ title: 'Verify Information' }}
       />
     </Stack.Navigator>
   );

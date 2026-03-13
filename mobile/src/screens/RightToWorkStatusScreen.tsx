@@ -1,46 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  Alert, TouchableOpacity, TextInput, ScrollView,
+  TouchableOpacity, ScrollView,
 } from 'react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '../navigation/types';
 import { rtwService, type RtwStatus } from '../services/rtwService';
 
-const DOC_TYPES = [
-  'passport',
-  'birth_certificate',
-  'visa',
-  'biometric_residence_permit',
-];
+type Props = {
+  navigation: NativeStackNavigationProp<AppStackParamList, 'RightToWorkStatus'>;
+};
 
-export default function RightToWorkStatusScreen() {
+export default function RightToWorkStatusScreen({ navigation }: Props) {
   const [rtw, setRtw] = useState<RtwStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [docType, setDocType] = useState(DOC_TYPES[0]);
-  const [docNumber, setDocNumber] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     rtwService.getStatus()
       .then(setRtw)
       .finally(() => setLoading(false));
   }, []);
-
-  async function submit() {
-    if (!docNumber.trim()) {
-      Alert.alert('Required', 'Please enter a document number');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const res = await rtwService.submit({ document_type: docType, document_number: docNumber });
-      setRtw(res);
-      Alert.alert('Submitted', 'Your documents are under review.');
-    } catch (e: unknown) {
-      Alert.alert('Error', e instanceof Error ? e.message : 'Submission failed');
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#4f46e5" /></View>;
 
@@ -49,7 +28,16 @@ export default function RightToWorkStatusScreen() {
     pending:  { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
     rejected: { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
   };
-  const ss = rtw ? (statusStyles[rtw.status] ?? statusStyles.pending) : null;
+  const normalizedStatus = typeof rtw?.status === 'string' ? rtw.status : 'pending';
+  const statusLabel = normalizedStatus.toUpperCase();
+  const documentLabel = typeof rtw?.verification_method === 'string'
+    ? rtw.verification_method.replace(/_/g, ' ')
+    : 'Not provided';
+  const submittedLabel = rtw?.submitted_at ? new Date(rtw.submitted_at).toLocaleDateString() : 'Unknown';
+  const ss = rtw ? (statusStyles[normalizedStatus] ?? statusStyles.pending) : null;
+  const isLocked = Boolean(rtw && normalizedStatus !== 'rejected');
+  const idCompleted = isLocked;
+  const rtwCompleted = isLocked;
 
   return (
     <ScrollView style={styles.container}>
@@ -61,70 +49,79 @@ export default function RightToWorkStatusScreen() {
       {rtw && ss && (
         <View style={[styles.statusCard, { backgroundColor: ss.bg, borderColor: ss.border }]}>
           <Text style={[styles.statusText, { color: ss.text }]}>
-            Status: {rtw.status.toUpperCase()}
+            Status: {statusLabel}
           </Text>
           <Text style={[styles.statusSub, { color: ss.text }]}>
-            Document: {rtw.document_type.replace(/_/g, ' ')}
+            Document: {documentLabel}
           </Text>
           <Text style={[styles.statusSub, { color: ss.text }]}>
-            Submitted: {new Date(rtw.submitted_at).toLocaleDateString()}
+            Submitted: {submittedLabel}
           </Text>
-          {rtw.status === 'pending' && (
+          {normalizedStatus === 'pending' && (
             <Text style={[styles.note, { color: ss.text }]}>
               ⏳ Awaiting admin review — you can book shifts once approved.
             </Text>
           )}
-          {rtw.status === 'rejected' && rtw.rejection_reason && (
+          {normalizedStatus === 'rejected' && rtw.notes && (
             <Text style={[styles.note, { color: ss.text }]}>
-              Reason: {rtw.rejection_reason}
+              Reason: {rtw.notes}
             </Text>
           )}
         </View>
       )}
 
-      {(!rtw || rtw.status === 'rejected') && (
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>
-            {rtw?.status === 'rejected' ? 'Resubmit documents' : 'Submit documents'}
+      <View style={styles.form}>
+        <Text style={styles.formTitle}>
+          {isLocked ? 'Verification checklist' : normalizedStatus === 'rejected' ? 'Resubmit documents' : 'Submit documents'}
+        </Text>
+
+        <TouchableOpacity
+          style={[styles.checkCard, idCompleted && styles.checkCardCompleted]}
+          activeOpacity={0.9}
+          onPress={() =>
+            navigation.navigate('IdDocumentDetails', {
+              idType: isLocked ? 'submitted' : '',
+              isCompleted: idCompleted,
+              isLocked,
+            })
+          }
+        >
+          <Text style={styles.cardTitle}>ID document</Text>
+          <Text style={styles.cardBody}>
+            {isLocked ? 'Submitted and locked' : 'Tap to choose passport, license or national id.'}
           </Text>
-
-          <Text style={styles.label}>Document type</Text>
-          <View style={styles.docTypes}>
-            {DOC_TYPES.map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.typeBtn, docType === t && styles.typeBtnActive]}
-                onPress={() => setDocType(t)}
-              >
-                <Text style={[styles.typeBtnText, docType === t && styles.typeBtnActiveText]}>
-                  {t.replace(/_/g, ' ')}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={[styles.checkBadge, idCompleted ? styles.checkBadgeDone : styles.checkBadgeTodo]}>
+            <Text style={styles.checkBadgeText}>{idCompleted ? '✓' : '○'}</Text>
           </View>
+        </TouchableOpacity>
 
-          <Text style={styles.label}>Document number</Text>
-          <TextInput
-            style={styles.input}
-            value={docNumber}
-            onChangeText={setDocNumber}
-            placeholder="e.g. 123456789"
-            autoCapitalize="characters"
-          />
+        <TouchableOpacity
+          style={[styles.checkCard, rtwCompleted && styles.checkCardCompleted]}
+          activeOpacity={0.9}
+          onPress={() =>
+            navigation.navigate('RtwMethodDetails', {
+              method: isLocked ? documentLabel : '',
+              isCompleted: rtwCompleted,
+              isLocked,
+            })
+          }
+        >
+          <Text style={styles.cardTitle}>Right to work</Text>
+          <Text style={styles.cardBody}>
+            {isLocked ? documentLabel : 'Tap to choose visa or share code.'}
+          </Text>
+          <View style={[styles.checkBadge, rtwCompleted ? styles.checkBadgeDone : styles.checkBadgeTodo]}>
+            <Text style={styles.checkBadgeText}>{rtwCompleted ? '✓' : '○'}</Text>
+          </View>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
-            onPress={submit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.submitBtnText}>Submit documents</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
+        <TouchableOpacity
+          style={styles.dashboardBtn}
+          onPress={() => navigation.navigate('WorkerDashboard')}
+        >
+          <Text style={styles.dashboardBtnText}>Back to Dashboard</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -140,20 +137,34 @@ const styles = StyleSheet.create({
   note: { marginTop: 8, fontSize: 13, lineHeight: 20 },
   form: { backgroundColor: '#fff', borderRadius: 12, padding: 20 },
   formTitle: { fontSize: 17, fontWeight: '700', marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
-  docTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  typeBtn: {
-    borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 6,
+  checkCard: {
+    position: 'relative',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    padding: 14,
+    marginBottom: 12,
   },
-  typeBtnActive: { borderColor: '#4f46e5', backgroundColor: '#ede9fe' },
-  typeBtnText: { fontSize: 12, color: '#374151', textTransform: 'capitalize' },
-  typeBtnActiveText: { color: '#4f46e5', fontWeight: '600' },
-  input: {
-    borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8,
-    padding: 12, marginBottom: 20, fontSize: 15,
+  checkCardCompleted: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#d1d5db',
   },
-  submitBtn: { backgroundColor: '#4f46e5', borderRadius: 8, padding: 14, alignItems: 'center' },
-  submitBtnDisabled: { opacity: 0.5 },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 6, color: '#111827' },
+  cardBody: { fontSize: 14, color: '#374151' },
+  checkBadge: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBadgeDone: { backgroundColor: '#16a34a' },
+  checkBadgeTodo: { backgroundColor: '#9ca3af' },
+  checkBadgeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  dashboardBtn: { backgroundColor: '#111827', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
+  dashboardBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
