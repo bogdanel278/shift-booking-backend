@@ -1,0 +1,40 @@
+# Environment variables
+.env
+.env.local
+
+# Node modules
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+*.ipa
+*.apk
+
+# Metro
+.metro-health-check*
+
+# macOS
+.DS_Store
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Local
+*.log*
+
+# Temporary
+scan-schema.js

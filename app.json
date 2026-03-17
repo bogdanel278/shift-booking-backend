@@ -1,0 +1,27 @@
+{
+    "expo": {
+        "name": "Employer App",
+        "slug": "employer-app",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "userInterfaceStyle": "light",
+        "splash": {
+            "backgroundColor": "#ffffff",
+            "resizeMode": "contain"
+        },
+        "assetBundlePatterns": [],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.employer.app"
+        },
+        "android": {
+            "package": "com.employer.app"
+        },
+        "web": {
+            "bundler": "metro"
+        },
+        "plugins": [
+            "@react-native-community/datetimepicker"
+        ]
+    }
+}
