@@ -9,6 +9,7 @@ import {
     Alert,
     ActivityIndicator,
     Platform,
+    Switch,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../api/supabase';
@@ -34,6 +35,11 @@ export default function CreateShiftScreen({ navigation }: CreateShiftScreenProps
     const [location, setLocation] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Experience and Uniform fields
+    const [experienceLevel, setExperienceLevel] = useState<'entry' | 'pro' | 'expert'>('entry');
+    const [uniformInstructions, setUniformInstructions] = useState('');
+    const [ppeRequired, setPpeRequired] = useState(false);
 
     // Location management
     const [useDifferentLocation, setUseDifferentLocation] = useState(false);
@@ -63,10 +69,10 @@ export default function CreateShiftScreen({ navigation }: CreateShiftScreenProps
                 return;
             }
 
-            // Fetch verification status and business address
+            // Fetch verification status, business address, and default preferences
             const { data, error } = await supabase
                 .from('business_profiles')
-                .select('v_status, business_address')
+                .select('v_status, business_address, default_min_experience, default_uniform_instructions, default_ppe_required')
                 .eq('user_id', user.id)
                 .single();
 
@@ -78,6 +84,17 @@ export default function CreateShiftScreen({ navigation }: CreateShiftScreenProps
                 if (data?.business_address) {
                     setBusinessAddress(data.business_address);
                     setLocation(data.business_address);
+                }
+
+                // Auto-fill default preferences
+                if (data?.default_min_experience) {
+                    setExperienceLevel(data.default_min_experience as 'entry' | 'pro' | 'expert');
+                }
+                if (data?.default_uniform_instructions) {
+                    setUniformInstructions(data.default_uniform_instructions);
+                }
+                if (data?.default_ppe_required !== null && data?.default_ppe_required !== undefined) {
+                    setPpeRequired(data.default_ppe_required);
                 }
             }
         } catch (error) {
@@ -194,6 +211,10 @@ export default function CreateShiftScreen({ navigation }: CreateShiftScreenProps
                 pay_rate: rate,
                 description: description.trim() || null,
                 status: 'open',
+                // Experience and uniform fields
+                min_experience_level: experienceLevel,
+                uniform_instructions: uniformInstructions.trim() || null,
+                ppe_required: ppeRequired,
             };
 
             const { data, error } = await supabase
@@ -473,6 +494,114 @@ export default function CreateShiftScreen({ navigation }: CreateShiftScreenProps
                         />
                     </View>
 
+                    {/* Experience Level */}
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Minimum Experience Level</Text>
+                        <Text style={styles.hint}>Select the minimum experience required for this shift</Text>
+                        <View style={styles.experienceButtons}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.experienceButton,
+                                    experienceLevel === 'entry' && styles.experienceButtonActive,
+                                ]}
+                                onPress={() => setExperienceLevel('entry')}
+                                disabled={loading}
+                            >
+                                <Text style={styles.experienceIcon}>⭐</Text>
+                                <View style={styles.experienceTextContainer}>
+                                    <Text
+                                        style={[
+                                            styles.experienceTitle,
+                                            experienceLevel === 'entry' && styles.experienceTitleActive,
+                                        ]}
+                                    >
+                                        Entry Level
+                                    </Text>
+                                    <Text style={styles.experienceSubtitle}>0-1 years experience</Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.experienceButton,
+                                    experienceLevel === 'pro' && styles.experienceButtonActive,
+                                ]}
+                                onPress={() => setExperienceLevel('pro')}
+                                disabled={loading}
+                            >
+                                <Text style={styles.experienceIcon}>⭐⭐</Text>
+                                <View style={styles.experienceTextContainer}>
+                                    <Text
+                                        style={[
+                                            styles.experienceTitle,
+                                            experienceLevel === 'pro' && styles.experienceTitleActive,
+                                        ]}
+                                    >
+                                        Professional
+                                    </Text>
+                                    <Text style={styles.experienceSubtitle}>2-5 years experience</Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.experienceButton,
+                                    experienceLevel === 'expert' && styles.experienceButtonActive,
+                                ]}
+                                onPress={() => setExperienceLevel('expert')}
+                                disabled={loading}
+                            >
+                                <Text style={styles.experienceIcon}>⭐⭐⭐</Text>
+                                <View style={styles.experienceTextContainer}>
+                                    <Text
+                                        style={[
+                                            styles.experienceTitle,
+                                            experienceLevel === 'expert' && styles.experienceTitleActive,
+                                        ]}
+                                    >
+                                        Expert
+                                    </Text>
+                                    <Text style={styles.experienceSubtitle}>5+ years experience</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Uniform & PPE */}
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Uniform & PPE Requirements</Text>
+
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleLabel}>
+                                <Text style={styles.toggleTitle}>PPE Required</Text>
+                                <Text style={styles.toggleSubtitle}>
+                                    Personal Protective Equipment needed
+                                </Text>
+                            </View>
+                            <Switch
+                                value={ppeRequired}
+                                onValueChange={setPpeRequired}
+                                trackColor={{ false: '#E5E7EB', true: '#34D399' }}
+                                thumbColor={Platform.OS === 'ios' ? '#fff' : ppeRequired ? '#10B981' : '#f4f3f4'}
+                                disabled={loading}
+                            />
+                        </View>
+
+                        <Text style={styles.label}>Uniform Instructions (Optional)</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="E.g., Full black attire (smart), non-slip shoes required"
+                            value={uniformInstructions}
+                            onChangeText={setUniformInstructions}
+                            multiline
+                            numberOfLines={3}
+                            editable={!loading}
+                        />
+                        <Text style={styles.hint}>
+                            💡 Common templates: "Full Black (Smart)", "Casual (Clean)", "Safety Gear Provided"
+                        </Text>
+                    </View>
+
                     {/* Create Button */}
                     <TouchableOpacity
                         style={[styles.createButton, loading && styles.buttonDisabled]}
@@ -725,5 +854,69 @@ const styles = StyleSheet.create({
         color: '#007AFF',
         marginTop: 8,
         textDecorationLine: 'underline',
+    },
+    // Experience section styles
+    experienceButtons: {
+        gap: 12,
+        marginTop: 8,
+    },
+    experienceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 2,
+        borderColor: '#E5E7EB',
+        borderRadius: 10,
+        padding: 14,
+    },
+    experienceButtonActive: {
+        backgroundColor: '#EEF2FF',
+        borderColor: '#6366F1',
+    },
+    experienceIcon: {
+        fontSize: 20,
+        marginRight: 12,
+    },
+    experienceTextContainer: {
+        flex: 1,
+    },
+    experienceTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    experienceTitleActive: {
+        color: '#4F46E5',
+    },
+    experienceSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    // Uniform & PPE section styles
+    toggleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+    },
+    toggleLabel: {
+        flex: 1,
+        marginRight: 12,
+    },
+    toggleTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#333',
+    },
+    toggleSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
     },
 });

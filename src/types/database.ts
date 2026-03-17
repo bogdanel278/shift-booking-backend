@@ -111,6 +111,10 @@ export interface Database {
                     insurance_doc_url: string | null
                     business_address: string | null
                     trading_name: string | null
+                    // Shift preferences defaults
+                    default_uniform_instructions: string | null
+                    default_min_experience: 'entry' | 'pro' | 'expert' | null
+                    default_ppe_required: boolean | null
                 }
                 Insert: {
                     id?: string
@@ -135,6 +139,10 @@ export interface Database {
                     insurance_doc_url?: string | null
                     business_address?: string | null
                     trading_name?: string | null
+                    // Shift preferences defaults
+                    default_uniform_instructions?: string | null
+                    default_min_experience?: 'entry' | 'pro' | 'expert' | null
+                    default_ppe_required?: boolean | null
                 }
                 Update: {
                     id?: string
@@ -159,6 +167,10 @@ export interface Database {
                     insurance_doc_url?: string | null
                     business_address?: string | null
                     trading_name?: string | null
+                    // Shift preferences defaults
+                    default_uniform_instructions?: string | null
+                    default_min_experience?: 'entry' | 'pro' | 'expert' | null
+                    default_ppe_required?: boolean | null
                 }
                 Relationships: []
             }
@@ -441,6 +453,10 @@ export interface Database {
                     updated_at: string | null
                     deleted_at: string | null
                     search_vector: unknown | null
+                    // Experience and uniform fields
+                    min_experience_level: 'entry' | 'pro' | 'expert' | null
+                    uniform_instructions: string | null
+                    ppe_required: boolean | null
                 }
                 Insert: {
                     id?: string
@@ -459,6 +475,10 @@ export interface Database {
                     updated_at?: string | null
                     deleted_at?: string | null
                     search_vector?: unknown | null
+                    // Experience and uniform fields
+                    min_experience_level?: 'entry' | 'pro' | 'expert' | null
+                    uniform_instructions?: string | null
+                    ppe_required?: boolean | null
                 }
                 Update: {
                     id?: string
@@ -477,6 +497,10 @@ export interface Database {
                     updated_at?: string | null
                     deleted_at?: string | null
                     search_vector?: unknown | null
+                    // Experience and uniform fields
+                    min_experience_level?: 'entry' | 'pro' | 'expert' | null
+                    uniform_instructions?: string | null
+                    ppe_required?: boolean | null
                 }
                 Relationships: []
             }
